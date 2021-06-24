@@ -799,4 +799,56 @@ lemmas getSchedContext_setSchedContext_decompose_decompose2
 lemmas getSchedContext_setSchedContext_decompose_decompose_ext2
   = getSchedContext_setSchedContext_decompose[where f="f x" and g="g y" for f g x y]
 
+(* rewrite rules for updateSchedCOntext *)
+lemma updateSchedContext_decompose:
+   "monadic_rewrite False True
+     (sc_at' scPtr and K (\<forall>sc. objBits (f sc) = objBits sc) and K (\<forall>sc. objBits (g sc) = objBits sc))
+     (updateSchedContext scPtr (g o f))
+     (do updateSchedContext scPtr f;
+         updateSchedContext scPtr g
+      od)"
+  unfolding updateSchedContext_def bind_assoc o_def
+  using getSchedContext_setSchedContext_decompose by blast
+
+lemma updateSchedContext_decompose_twice:
+  "\<lbrakk>\<forall>sc. objBits (f sc) = objBits sc; \<forall>sc. objBits (g sc) = objBits sc;
+    \<forall>sc. objBits (h sc) = objBits sc\<rbrakk> \<Longrightarrow>
+    monadic_rewrite False True
+     (sc_at' scPtr)
+     (updateSchedContext scPtr (h o g o f))
+     (do updateSchedContext scPtr f;
+         updateSchedContext scPtr g;
+         updateSchedContext scPtr h
+      od)"
+  apply (rule monadic_rewrite_imp)
+   apply (rule monadic_rewrite_trans)
+    apply (rule updateSchedContext_decompose)
+   apply (rule monadic_rewrite_bind_tail)
+    apply simp
+    apply (rule updateSchedContext_decompose[simplified])
+   apply (wpsimp wp: updateSchedContext_wp)
+  apply (clarsimp simp: obj_at_simps opt_map_def ps_clear_upd)
+  done
+
+lemma updateSchedContext_decompose_thrice:
+  "\<lbrakk>\<forall>sc. objBits (f sc) = objBits sc; \<forall>sc. objBits (g sc) = objBits sc;
+    \<forall>sc. objBits (h sc) = objBits sc;  \<forall>sc. objBits (k sc) = objBits sc\<rbrakk> \<Longrightarrow>
+    monadic_rewrite False True
+     (sc_at' scPtr)
+     (updateSchedContext scPtr (k o h o g o f))
+     (do updateSchedContext scPtr f;
+         updateSchedContext scPtr g;
+         updateSchedContext scPtr h;
+         updateSchedContext scPtr k
+      od)"
+  apply (rule monadic_rewrite_imp)
+   apply (rule monadic_rewrite_trans)
+    apply (rule updateSchedContext_decompose)
+   apply (rule monadic_rewrite_bind_tail)
+    apply simp
+    apply (rule updateSchedContext_decompose_twice[simplified]; simp)
+   apply (wpsimp wp: updateSchedContext_wp)
+  apply (clarsimp simp: obj_at_simps ps_clear_upd opt_map_def)
+  done
+
 end
