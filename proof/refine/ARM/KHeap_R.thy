@@ -3988,7 +3988,7 @@ lemma state_relation_sc_update':
                                      \<Rightarrow> Some (KOSchedContext (f' sc'))
                                  | _ \<Rightarrow> hp' ptr
                                 else hp' p)) s') \<in> state_relation"
-  supply pred_map_rewrite[simp] scs_of_rewrite[simp] opt_map_left_Some[simp]
+  supply pred_map_rewrite[simp] scs_of_rewrite[simp] opt_map_red[simp]
          sc_replies_of_rewrite[simplified, simp]
   proof -
   have z': "\<And>s. sc_at' ptr s
@@ -4073,7 +4073,7 @@ lemma updateSchedContext_wp:
    updateSchedContext sc_ptr f'
    \<lbrace> \<lambda>rv. Q \<rbrace>"
   by (wpsimp simp: updateSchedContext_def wp: set_sc'.set_wp)
-     (clarsimp simp: obj_at'_def projectKOs opt_map_left_Some elim!: rsubst[where P=Q])
+     (clarsimp simp: obj_at'_def projectKOs opt_map_red elim!: rsubst[where P=Q])
 
 lemma no_fail_setSchedContext[wp]:
   "no_fail (sc_at' ptr and (\<lambda>s'. ((\<lambda>k::sched_context. objBits k = objBits new) |< scs_of' s') ptr)) (setSchedContext ptr new)"
@@ -4131,7 +4131,7 @@ lemma updateSchedContext_corres_gen:
     apply clarsimp
     apply (drule state_relation_sc_update'[OF R1 R2 sz, simplified])
       apply ((fastforce simp: obj_at_def is_sc_obj obj_at'_def projectKOs)+)[4]
-    apply (clarsimp simp: obj_at_def obj_at'_def projectKOs fun_upd_def[symmetric] opt_map_left_Some)
+    apply (clarsimp simp: obj_at_def obj_at'_def projectKOs fun_upd_def[symmetric] opt_map_red)
     apply (case_tac s; case_tac s'; fastforce)
    apply (clarsimp simp: update_sched_context_def obj_at_def in_monad
                          get_object_def set_object_def a_type_def)
@@ -4406,10 +4406,10 @@ lemma sym_refs_tcbSCs:
   apply (clarsimp simp: sym_heap_def)
   apply (rule iffI)
    apply (drule_tac tp=SCTcb and x=p and y=p' in sym_refsE;
-          force simp: get_refs_def2 state_refs_of'_def projectKOs opt_map_left_Some refs_of_rev'
+          force simp: get_refs_def2 state_refs_of'_def projectKOs opt_map_red refs_of_rev'
                 dest: pspace_alignedD' pspace_distinctD' split: if_split_asm option.split_asm)+
   by (drule_tac tp=TCBSchedContext and x=p' and y=p in sym_refsE;
-      force simp: get_refs_def2 state_refs_of'_def projectKOs opt_map_left_Some refs_of_rev'
+      force simp: get_refs_def2 state_refs_of'_def projectKOs opt_map_red refs_of_rev'
                dest: pspace_alignedD' pspace_distinctD' split: if_split_asm option.split_asm)+
 
 lemma sym_refs_scReplies:
@@ -4418,10 +4418,10 @@ lemma sym_refs_scReplies:
   apply (clarsimp simp: sym_heap_def)
   apply (rule iffI)
    apply (drule_tac tp=ReplySchedContext and x=p and y=p' in sym_refsE;
-          force simp: get_refs_def2 state_refs_of'_def projectKOs opt_map_left_Some refs_of_rev'
+          force simp: get_refs_def2 state_refs_of'_def projectKOs opt_map_red refs_of_rev'
                 dest: pspace_alignedD' pspace_distinctD' split: if_split_asm option.split_asm)+
   by (drule_tac tp=SCReply and x=p' and y=p in sym_refsE;
-      force simp: get_refs_def2 state_refs_of'_def projectKOs opt_map_left_Some refs_of_rev'
+      force simp: get_refs_def2 state_refs_of'_def projectKOs opt_map_red refs_of_rev'
                dest: pspace_alignedD' pspace_distinctD' split: if_split_asm option.split_asm)+
 
 lemma setSchedContext_scTCBs_of:
