@@ -446,6 +446,10 @@ locale Systemcall_AI_Pre2 = Systemcall_AI_Pre itcb_state state_ext_t +
   for state_ext_t :: "'state_ext::state_ext itself"
 begin
 
+crunches reply_remove
+  for fault_tcb_at[wp]: "fault_tcb_at P t"
+  (wp: crunch_wps)
+
 lemma do_reply_invs[wp]:
   "\<lbrace>tcb_at t and reply_at r and invs\<rbrace>
    do_reply_transfer t r g
@@ -464,7 +468,9 @@ lemma do_reply_invs[wp]:
                                  get_simple_ko_wp thread_get_fault_wp
                                  hoare_vcg_all_lift
                            simp: ran_tcb_cap_cases)+
-        apply (simp flip: cases_imp_eq imp_conjL not_None_eq)
+          apply (simp flip: cases_imp_eq imp_conjL not_None_eq)
+          apply (wpsimp wp: hoare_drop_imps)
+         apply wpsimp
         apply (wpsimp wp: hoare_drop_imps reply_remove_invs)
        apply (clarsimp cong: conj_cong)
        apply (wpsimp wp: gts_wp get_simple_ko_wp)+
@@ -1378,7 +1384,10 @@ crunches check_budget_restart
    simp: crunch_simps)
 
 crunches
-  possible_switch_to, do_ipc_transfer, maybe_donate_sc, handle_fault_reply, postpone
+  possible_switch_to, do_ipc_transfer, maybe_donate_sc, handle_fault_reply, postpone,
+  if_sporadic_active_cur_sc_assert_refill_unblock_check,
+  if_sporadic_cur_sc_test_refill_unblock_check,
+  if_sporadic_active_cur_sc_test_refill_unblock_check
   for ct_in_state[wp]: "ct_in_state P :: 'state_ext state \<Rightarrow> _"
   (rule: ct_in_state_thread_state_lift wp: crunch_wps simp: crunch_simps)
 
@@ -1434,9 +1443,13 @@ lemma do_reply_transfer_ct_active[wp]:
    \<lbrace>\<lambda>_. ct_active :: 'state_ext state \<Rightarrow> _\<rbrace>"
   apply (simp add: do_reply_transfer_def)
   apply (wpsimp wp: set_thread_state_ct_st hoare_vcg_all_lift hoare_drop_imps
-                    get_tcb_obj_ref_wp gts_wp | rule conjI)+
-              apply (wpsimp wp: thread_set_ct_in_state hoare_vcg_all_lift gts_wp
-                                get_simple_ko_wp)+
+                    get_tcb_obj_ref_wp gts_wp thread_set_ct_in_state
+       | rule conjI)+
+          apply (wpsimp wp: thread_set_ct_in_state hoare_vcg_all_lift
+                      simp: if_sporadic_active_cur_sc_test_refill_unblock_check_def)+
+          apply (wp hoare_drop_imps)
+         apply (wp hoare_drop_imps)
+        apply (wpsimp wp: thread_set_ct_in_state gts_wp get_tcb_obj_ref_wp get_simple_ko_wp)+
   apply (auto simp: ct_in_state_def pred_tcb_at_def obj_at_def)
   done
 
@@ -1516,7 +1529,7 @@ crunches
   sched_context_bind_tcb, sched_context_unbind_tcb, sched_context_yield_to
   for ct_in_state: "ct_in_state P :: 'state_ext state \<Rightarrow> _"
   (wp: crunch_wps ct_in_state_thread_state_lift ignore: set_tcb_obj_ref
-   simp: crunch_simps)
+   simp: crunch_simps if_sporadic_and_active_refill_unblock_check_def)
 
 crunches invoke_domain, invoke_sched_context
   for ct_in_state[wp]: "ct_in_state P :: 'state_ext state \<Rightarrow> _"
@@ -1586,11 +1599,11 @@ end
    these are presently unused, but have proven useful in the past *)
 context notes if_cong[cong] begin
 
-lemma complete_signal_state_refs_of:
-  "\<lbrace>\<lambda>s. P (state_refs_of s) \<rbrace> complete_signal ntfnc t \<lbrace>\<lambda>rv s. P (state_refs_of s) \<rbrace>"
+lemma complete_signal_sym_refs:
+  "\<lbrace>\<lambda>s. sym_refs (state_refs_of s) \<rbrace> complete_signal ntfnc t \<lbrace>\<lambda>rv s. sym_refs (state_refs_of s) \<rbrace>"
   unfolding complete_signal_def
   apply (rule hoare_pre)
-   apply (wp get_simple_ko_wp | wpc | simp)+
+   apply (wpsimp wp: get_simple_ko_wp hoare_vcg_all_lift hoare_drop_imps maybe_donate_sc_sym_refs)
   apply clarsimp
   apply (rename_tac ntfn badge)
   apply (subgoal_tac " get_refs NTFNBound (ntfn_bound_tcb ntfn) \<union>
